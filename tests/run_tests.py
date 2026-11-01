@@ -5,12 +5,12 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, ".")
-import tests.test_reachback
+import tests.test_seen
 import tests.test_new_features
 
 failed = 0
 passed = 0
-for module in (tests.test_reachback, tests.test_new_features):
+for module in (tests.test_seen, tests.test_new_features):
     for name, func in inspect.getmembers(module, inspect.isfunction):
         if not name.startswith("test_") or func.__module__ != module.__name__:
             continue

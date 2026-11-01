@@ -123,7 +123,7 @@ def parse(path: Path) -> list[Thread]:
     if database is None:
         raise ValueError(f"No Messages database found at {path}")
 
-    with tempfile.TemporaryDirectory(prefix="reachback_imessage_") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="seen_imessage_") as temp_dir:
         copy = Path(temp_dir) / "chat.db"
         shutil.copy2(database, copy)
         for suffix in ("-wal", "-shm"):

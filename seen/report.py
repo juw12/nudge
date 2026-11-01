@@ -22,7 +22,7 @@ def _rate(friend: FriendReport) -> str:
 
 def to_text(summary: Summary, top: int = 15) -> str:
     lines = [
-        f"reachback · last {summary.days} days up to {summary.as_of:%Y-%m-%d} · you = {', '.join(sorted(summary.me))}",
+        f"seen · last {summary.days} days up to {summary.as_of:%Y-%m-%d} · you = {', '.join(sorted(summary.me))}",
         "",
         f"  Friends sent you {summary.total_shares} reels/posts/links. "
         f"You responded to {summary.total_acknowledged} "
@@ -136,7 +136,7 @@ def to_html(summary: Summary, top: int = 30) -> str:
 
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>reachback · who's waiting on you</title><style>{CSS}</style></head><body><main>
+<title>seen · who's waiting on you</title><style>{CSS}</style></head><body><main>
 <h1>Who's waiting on you</h1>
 <div class="muted">Last {summary.days} days up to {summary.as_of:%d %b %Y} · generated locally, nothing uploaded</div>
 <div class="hero">

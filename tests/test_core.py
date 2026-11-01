@@ -2,11 +2,11 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from reachback.analyze import Settings, analyze
-from reachback.parsers import load
-from reachback.parsers.instagram import fix_text
-from reachback.report import to_html, to_json, to_text
-from reachback.sample import ME, write_sample_export
+from seen.analyze import Settings, analyze
+from seen.parsers import load
+from seen.parsers.instagram import fix_text
+from seen.report import to_html, to_json, to_text
+from seen.sample import ME, write_sample_export
 
 AS_OF = datetime(2026, 10, 31, 22, 0)
 

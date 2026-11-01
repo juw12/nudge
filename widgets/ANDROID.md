@@ -2,17 +2,17 @@
 
 > Untested recipe. Please open a PR with fixes or a KWGT preset.
 
-1. On your computer, have reachback write `status.json` into a folder that syncs to your phone
+1. On your computer, have seen write `status.json` into a folder that syncs to your phone
    (Google Drive via Autosync, Dropbox, OneDrive or Syncthing):
 
    ```bash
-   reachback schedule <exports> --out "C:\Users\you\Syncthing\reachback"
+   seen schedule <exports> --out "C:\Users\you\Syncthing\seen"
    ```
 
 2. In **Tasker**:
    * **Profile → Application →** Instagram, TikTok, YouTube
    * **Task**
-     1. *File → Read File* → `Sync/reachback/status.json` → to `%status`
+     1. *File → Read File* → `Sync/seen/status.json` → to `%status`
      2. *Code → JavaScriptlet*:
         ```js
         var s = JSON.parse(status);

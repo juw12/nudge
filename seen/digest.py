@@ -12,7 +12,7 @@ from pathlib import Path
 from .analyze import Summary
 
 STALE_AFTER_DAYS = 7
-TASK_NAME = "reachback-weekly-digest"
+TASK_NAME = "seen-weekly-digest"
 
 
 def default_output_dir() -> Path:
@@ -22,7 +22,7 @@ def default_output_dir() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-    return base / "reachback"
+    return base / "seen"
 
 
 def data_age_days(summary: Summary, now: datetime | None = None) -> int:
@@ -70,7 +70,7 @@ def build_status(summary: Summary, now: datetime | None = None, top: int = 5) ->
 
 def to_digest_text(summary: Summary, now: datetime | None = None) -> str:
     status = build_status(summary, now, top=3)
-    lines = [f"reachback weekly · {status['headline']}"]
+    lines = [f"seen weekly · {status['headline']}"]
     if status["shares_total"]:
         lines.append(
             f"  {status['shares_total']} things shared with you in {summary.days} days, "
@@ -152,11 +152,11 @@ def write_launcher(out_dir: Path, digest_args: list[str]) -> Path:
             python = str(windowless)  # no console window flashing up every week
     if sys.platform == "win32":
         launcher = launcher_path(out_dir)
-        args = subprocess.list2cmdline([python, "-m", "reachback", "digest", *digest_args])
+        args = subprocess.list2cmdline([python, "-m", "seen", "digest", *digest_args])
         launcher.write_text(f"@echo off\r\n{args}\r\n", encoding="utf-8")
     else:
         launcher = launcher_path(out_dir)
-        args = shlex.join([python, "-m", "reachback", "digest", *digest_args])
+        args = shlex.join([python, "-m", "seen", "digest", *digest_args])
         launcher.write_text(f"#!/bin/sh\n{args}\n", encoding="utf-8")
         launcher.chmod(0o755)
     return launcher

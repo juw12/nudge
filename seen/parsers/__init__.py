@@ -13,7 +13,7 @@ IMESSAGE_KEYWORD = "imessage"
 
 
 def _unzip(path: Path) -> Path:
-    temp_dir = tempfile.TemporaryDirectory(prefix="reachback_")
+    temp_dir = tempfile.TemporaryDirectory(prefix="seen_")
     _temp_dirs.append(temp_dir)  # keep alive for the process lifetime
     with zipfile.ZipFile(path) as archive:
         archive.extractall(temp_dir.name)

@@ -1,9 +1,9 @@
 """Command-line entry point.
 
-  reachback scan     <export...>   full report
-  reachback digest   <export...>   short weekly summary + status.json for the phone widget
-  reachback schedule <export...>   run the digest automatically every week
-  reachback demo                   try it on generated data
+  seen scan     <export...>   full report
+  seen digest   <export...>   short weekly summary + status.json for the phone widget
+  seen schedule <export...>   run the digest automatically every week
+  seen demo                   try it on generated data
 """
 from __future__ import annotations
 
@@ -41,10 +41,10 @@ def _add_source_options(parser: argparse.ArgumentParser) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="reachback",
+        prog="seen",
         description="See which friends you've been leaving on read. Runs locally on your own chat exports.",
     )
-    parser.add_argument("--version", action="version", version=f"reachback {__version__}")
+    parser.add_argument("--version", action="version", version=f"seen {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     scan = sub.add_parser("scan", help="full report for one or more exports")
@@ -121,7 +121,7 @@ def _report(summary: Summary, args) -> None:
         print(f"\n  JSON  → {Path(args.json).resolve()}")
     if args.status:
         _write_status(summary, args.status)
-    html_path = args.html or (Path(tempfile.gettempdir()) / "reachback.html" if args.open else None)
+    html_path = args.html or (Path(tempfile.gettempdir()) / "seen.html" if args.open else None)
     if html_path:
         Path(html_path).write_text(to_html(summary), encoding="utf-8")
         print(f"  HTML  → {Path(html_path).resolve()}")
@@ -160,7 +160,7 @@ def _run_schedule(args) -> int:
         print(f"  {command}")
         return 0
     print("Scheduler command:\n  " + subprocess.list2cmdline(command))
-    print("Digest command:\n  reachback digest " + subprocess.list2cmdline(digest_args))
+    print("Digest command:\n  seen digest " + subprocess.list2cmdline(digest_args))
     if args.dry_run:
         print("\n(dry run, nothing scheduled)")
         return 0
@@ -191,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         return _run_schedule(args)
 
     if args.command == "demo":
-        root = Path(tempfile.mkdtemp(prefix="reachback_demo_"))
+        root = Path(tempfile.mkdtemp(prefix="seen_demo_"))
         threads = load(write_sample_export(root))
         me = None
     else:
@@ -212,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.notify:
             status = digest.build_status(summary)
             body = status["top"][0]["nudge"] if status["top"] else "Everyone's heard back from you this week."
-            digest.notify(f"reachback: {status['headline']}", body, paths["html"])
+            digest.notify(f"seen: {status['headline']}", body, paths["html"])
         if args.open:
             webbrowser.open(paths["html"].resolve().as_uri())
         return 0

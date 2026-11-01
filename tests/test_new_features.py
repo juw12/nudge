@@ -4,10 +4,10 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from reachback import contacts, digest
-from reachback.analyze import Settings, analyze
-from reachback.parsers import load
-from reachback.parsers.imessage import APPLE_EPOCH, SMS_DB_BACKUP_NAME, decode_attributed_body
+from seen import contacts, digest
+from seen.analyze import Settings, analyze
+from seen.parsers import load
+from seen.parsers.imessage import APPLE_EPOCH, SMS_DB_BACKUP_NAME, decode_attributed_body
 
 AS_OF = datetime(2026, 10, 31, 22, 0)
 
@@ -93,7 +93,7 @@ def test_imessage_db_and_iphone_backup_layout(tmp_path):
 
 
 def test_digest_status_and_text():
-    from reachback.sample import write_sample_export
+    from seen.sample import write_sample_export
     import tempfile
 
     threads = load(write_sample_export(Path(tempfile.mkdtemp()), as_of=AS_OF))

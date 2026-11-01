@@ -1,17 +1,17 @@
-// reachback widget for Scriptable (iOS / iPadOS) — https://scriptable.app
+// seen widget for Scriptable (iOS / iPadOS) — https://scriptable.app
 //
 // Shows "Maya + 2 others are waiting on you" on your home screen, and can fire a
 // notification when you open Instagram / TikTok (via a Shortcuts automation).
 //
 // Setup (once):
-//   1. On your computer, run:  reachback schedule <exports> --out "<a cloud folder>"
+//   1. On your computer, run:  seen schedule <exports> --out "<a cloud folder>"
 //      (iCloud Drive, OneDrive, Dropbox... anything the Files app can see).
-//   2. In Scriptable: Settings -> File Bookmarks -> add that folder, name it  reachback
+//   2. In Scriptable: Settings -> File Bookmarks -> add that folder, name it  seen
 //   3. Add this script to Scriptable, then add a Scriptable widget and pick this script.
 //   4. Optional nudge-before-feed: Shortcuts -> Automation -> App -> Instagram -> "Is Opened"
-//      -> Run Script (Scriptable) "reachback-widget" with parameter  notify  -> Run Immediately.
+//      -> Run Script (Scriptable) "seen-widget" with parameter  notify  -> Run Immediately.
 
-const BOOKMARK = "reachback";
+const BOOKMARK = "seen";
 const FILE_NAME = "status.json";
 
 // Deep links that open the app where the friend is waiting.
@@ -29,7 +29,7 @@ async function loadStatus() {
   if (fm.bookmarkExists(BOOKMARK)) {
     folder = fm.bookmarkedPath(BOOKMARK);
   } else {
-    folder = fm.joinPath(fm.documentsDirectory(), "reachback");
+    folder = fm.joinPath(fm.documentsDirectory(), "seen");
   }
   const path = fm.joinPath(folder, FILE_NAME);
   if (!fm.fileExists(path)) {
@@ -59,13 +59,13 @@ function buildWidget(status) {
   widget.setPadding(14, 14, 14, 14);
 
   if (!status) {
-    addText(widget, "reachback", 13, "#3b1d1d", true);
+    addText(widget, "seen", 13, "#3b1d1d", true);
     widget.addSpacer(6);
-    addText(widget, "No status.json yet. Run `reachback digest` and bookmark the folder.", 12, "#1b1b1b", false);
+    addText(widget, "No status.json yet. Run `seen digest` and bookmark the folder.", 12, "#1b1b1b", false);
     return widget;
   }
 
-  addText(widget, "💌 reachback", 12, "#3b1d1d", true);
+  addText(widget, "💌 seen", 12, "#3b1d1d", true);
   widget.addSpacer(4);
   addText(widget, status.headline, 16, "#1b1b1b", true);
   widget.addSpacer(6);
@@ -113,7 +113,7 @@ async function sendNudge(status) {
 async function showInApp(status) {
   if (!status || !status.top.length) {
     const alert = new Alert();
-    alert.title = "reachback";
+    alert.title = "seen";
     alert.message = status ? status.headline : "No status.json found yet.";
     alert.addAction("OK");
     await alert.present();

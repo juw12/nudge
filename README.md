@@ -1,8 +1,8 @@
-# reachback 💌
+# seen 💌
 
 **Your friends keep sending you reels. You keep scrolling past them.**
 
-`reachback` reads your own chat exports (Instagram, Messenger, WhatsApp, Telegram) and shows you
+`seen` reads your own chat exports (Instagram, Messenger, WhatsApp, Telegram) and shows you
 who has been reaching out while you weren't really there. You get a short, kind to-do list for
 your friendships:
 
@@ -35,7 +35,7 @@ came from. Existing tools don't cover this:
 | PingCRM | AI follow-ups for professional networking | Built for contacts and leads, not friends |
 | Scrolless and other blockers | Block Reels and Shorts | Cut the scrolling but don't point you back to people |
 
-reachback measures one thing: **attention people gave you that you never returned.**
+seen measures one thing: **attention people gave you that you never returned.**
 
 ## Privacy
 
@@ -46,16 +46,16 @@ reachback measures one thing: **attention people gave you that you never returne
 ## Install
 
 ```bash
-git clone https://github.com/<you>/reachback && cd reachback
-pip install .          # or run in place with: python -m reachback ...
-reachback demo --open  # try it on fake data first
+git clone https://github.com/<you>/seen && cd seen
+pip install .          # or run in place with: python -m seen ...
+seen demo --open  # try it on fake data first
 ```
 
 Requires Python 3.10+.
 
 ## Get your data
 
-| App | How to export | Pass to reachback |
+| App | How to export | Pass to seen |
 |---|---|---|
 | Instagram | Settings → Accounts Center → Your information and permissions → Download your information → **Messages**, format **JSON** | the `.zip` or unzipped folder |
 | Messenger | Same flow under Facebook, format **JSON** | the `.zip` or folder |
@@ -65,7 +65,7 @@ Requires Python 3.10+.
 | iMessage (Mac) | Nothing to export. Give your terminal **Full Disk Access** | `imessage` (reads `~/Library/Messages/chat.db`) |
 
 ```bash
-reachback scan ~/Downloads/instagram-export.zip "~/Downloads/WhatsApp Chat with Maya.txt" \
+seen scan ~/Downloads/instagram-export.zip "~/Downloads/WhatsApp Chat with Maya.txt" \
     --me "Sam Rivera" --days 30 --html report.html --open
 ```
 
@@ -89,7 +89,7 @@ iMessage only has phone numbers and emails. Add `--contacts contacts.vcf` (expor
 ## Weekly digest + desktop notification
 
 ```bash
-reachback digest imessage ~/Downloads/instagram-export.zip --notify --open
+seen digest imessage ~/Downloads/instagram-export.zip --notify --open
 ```
 
 This prints a five-line summary, writes `digest.html` and `status.json`, and can pop a desktop
@@ -100,12 +100,12 @@ refresh on their own every time your phone syncs, so iMessage stays current with
 Run it automatically every week:
 
 ```bash
-reachback schedule imessage ~/Downloads/instagram-export.zip --day SUN --time 19:00
-reachback schedule ... --dry-run     # see exactly what would be registered
-reachback unschedule
+seen schedule imessage ~/Downloads/instagram-export.zip --day SUN --time 19:00
+seen schedule ... --dry-run     # see exactly what would be registered
+seen unschedule
 ```
 
-* **Windows:** creates a Task Scheduler task called `reachback-weekly-digest`.
+* **Windows:** creates a Task Scheduler task called `seen-weekly-digest`.
 * **macOS / Linux:** prints the `crontab` line to add.
 
 ## Phone widget: "3 people are waiting on you" before you open a feed
@@ -114,17 +114,17 @@ The digest writes a small `status.json`. Point `--out` at any folder that syncs 
 iCloud Drive, OneDrive or Dropbox:
 
 ```bash
-reachback schedule imessage --out "C:\Users\you\iCloudDrive\reachback"
+seen schedule imessage --out "C:\Users\you\iCloudDrive\seen"
 ```
 
 **iPhone (Scriptable, free):**
 
-1. Install [Scriptable](https://scriptable.app). Copy `widgets/reachback-widget.js` into it.
-2. Go to Scriptable → Settings → File Bookmarks. Bookmark the synced folder as `reachback`.
+1. Install [Scriptable](https://scriptable.app). Copy `widgets/seen-widget.js` into it.
+2. Go to Scriptable → Settings → File Bookmarks. Bookmark the synced folder as `seen`.
 3. Add a Scriptable home-screen widget and choose the script. It shows who's waiting. Tapping it opens
    the app they messaged you in.
 4. **Nudge before the feed:** Shortcuts → Automation → App → *Instagram* (and TikTok…) → *Is Opened*
-   → *Run Script* `reachback-widget` with the parameter `notify` → *Run Immediately*. Opening Instagram
+   → *Run Script* `seen-widget` with the parameter `notify` → *Run Immediately*. Opening Instagram
    now shows "Maya + 2 others are waiting on you. Before you scroll, try: …"
 
 Run the script inside Scriptable to get a list of friends. Tapping one copies the suggested opener and
