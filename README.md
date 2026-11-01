@@ -46,7 +46,7 @@ nudge measures one thing: **attention people gave you that you never returned.**
 ## Install
 
 ```bash
-git clone https://github.com/<you>/nudge && cd nudge
+git clone https://github.com/juw12/nudge && cd nudge
 pip install .          # or run in place with: python -m nudge ...
 nudge demo --open  # try it on fake data first
 ```
@@ -161,7 +161,7 @@ Each friend gets a priority score (higher = more overdue):
 - [x] iOS widget + Shortcut nudge when a feed app opens (Scriptable)
 - [ ] Native Android widget / KWGT preset
 - [ ] "Watch together" mode: open all of a friend's pending reels in one tab, then reply
-- [ ] Opt-in, two-sided "nudge with love" receipts between friends
+- [ ] Opt-in, two-sided "seen with love" receipts between friends
 
 ## Development
 
