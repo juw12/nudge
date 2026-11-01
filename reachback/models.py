@@ -66,6 +66,7 @@ class Thread:
     source: str  # "instagram", "messenger", "whatsapp", "telegram"
     participants: set[str] = field(default_factory=set)
     messages: list[Message] = field(default_factory=list)
+    me: str | None = None  # set when the export itself says which sender is you (iMessage)
 
     def finalize(self) -> "Thread":
         self.messages.sort(key=lambda m: m.timestamp)

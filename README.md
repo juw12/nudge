@@ -61,6 +61,8 @@ Requires Python 3.10+.
 | Messenger | Same flow under Facebook, format **JSON** | the `.zip` or folder |
 | WhatsApp | Open a chat → ⋮ / contact name → **Export chat** → *Without media* | each `.txt` (or a folder of them) |
 | Telegram | Telegram Desktop → Settings → Advanced → **Export Telegram data** → *Machine-readable JSON* | `result.json` |
+| iMessage / SMS (iPhone on Windows) | iTunes or Apple Devices → back up iPhone **to this computer**, with *Encrypt local backup* **off** | the keyword `imessage` (finds the newest backup), or the backup folder |
+| iMessage (Mac) | Nothing to export. Give your terminal **Full Disk Access** | `imessage` (reads `~/Library/Messages/chat.db`) |
 
 ```bash
 reachback scan ~/Downloads/instagram-export.zip "~/Downloads/WhatsApp Chat with Maya.txt" \
@@ -70,6 +72,8 @@ reachback scan ~/Downloads/instagram-export.zip "~/Downloads/WhatsApp Chat with 
 `--me` is optional for Instagram, Messenger and Telegram, where you're auto-detected as the person in
 the most threads. It's **needed for a single WhatsApp chat**, because both people appear exactly once.
 You can repeat it if your name differs between apps.
+
+iMessage only has phone numbers and emails. Add `--contacts contacts.vcf` (exported from iCloud Contacts, Google Contacts or your phone) to see names instead.
 
 ### Options
 
@@ -81,6 +85,52 @@ You can repeat it if your name differs between apps.
 | `--as-of YYYY-MM-DD` | newest message | Pretend "today" is this date |
 | `--whatsapp-date-order` | auto | `dmy` / `mdy` / `ymd` if auto-detection guesses wrong |
 | `--json FILE` | | Machine-readable output for widgets, bots or dashboards |
+
+## Weekly digest + desktop notification
+
+```bash
+reachback digest imessage ~/Downloads/instagram-export.zip --notify --open
+```
+
+This prints a five-line summary, writes `digest.html` and `status.json`, and can pop a desktop
+notification ("Maya + 3 others are waiting on you"). The default window is the last **7** days. If your
+newest message is more than a week old, it reminds you to download a fresh export. iPhone backups
+refresh on their own every time your phone syncs, so iMessage stays current with no effort.
+
+Run it automatically every week:
+
+```bash
+reachback schedule imessage ~/Downloads/instagram-export.zip --day SUN --time 19:00
+reachback schedule ... --dry-run     # see exactly what would be registered
+reachback unschedule
+```
+
+* **Windows:** creates a Task Scheduler task called `reachback-weekly-digest`.
+* **macOS / Linux:** prints the `crontab` line to add.
+
+## Phone widget: "3 people are waiting on you" before you open a feed
+
+The digest writes a small `status.json`. Point `--out` at any folder that syncs to your phone, such as
+iCloud Drive, OneDrive or Dropbox:
+
+```bash
+reachback schedule imessage --out "C:\Users\you\iCloudDrive\reachback"
+```
+
+**iPhone (Scriptable, free):**
+
+1. Install [Scriptable](https://scriptable.app). Copy `widgets/reachback-widget.js` into it.
+2. Go to Scriptable → Settings → File Bookmarks. Bookmark the synced folder as `reachback`.
+3. Add a Scriptable home-screen widget and choose the script. It shows who's waiting. Tapping it opens
+   the app they messaged you in.
+4. **Nudge before the feed:** Shortcuts → Automation → App → *Instagram* (and TikTok…) → *Is Opened*
+   → *Run Script* `reachback-widget` with the parameter `notify` → *Run Immediately*. Opening Instagram
+   now shows "Maya + 2 others are waiting on you. Before you scroll, try: …"
+
+Run the script inside Scriptable to get a list of friends. Tapping one copies the suggested opener and
+jumps to the app.
+
+**Android:** see `widgets/ANDROID.md` for a Tasker recipe (community-tested PRs welcome).
 
 ## How it decides
 
@@ -105,16 +155,19 @@ Each friend gets a priority score (higher = more overdue):
 
 ## Roadmap ideas (PRs welcome)
 
-- [ ] iMessage (`chat.db`) and Discord DM exports
-- [ ] Weekly scheduled digest instead of a manual run
-- [ ] Android widget or iOS Shortcut that shows "3 people are waiting on you" *before* you open a feed
+- [x] iMessage (`chat.db` on Mac, iPhone backup on Windows)
+- [ ] Discord DM exports
+- [x] Weekly scheduled digest with desktop notification
+- [x] iOS widget + Shortcut nudge when a feed app opens (Scriptable)
+- [ ] Native Android widget / KWGT preset
 - [ ] "Watch together" mode: open all of a friend's pending reels in one tab, then reply
 - [ ] Opt-in, two-sided "seen with love" receipts between friends
 
 ## Development
 
 ```bash
-python -m pytest        # tests are in tests/
+python -m pytest            # or, without pytest installed:
+python tests/run_tests.py
 ```
 
 MIT licensed. Be the friend who replies. 💛

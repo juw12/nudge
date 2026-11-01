@@ -1,4 +1,4 @@
-"""Auto-detect and load chat exports from files, folders or zip archives."""
+"""Auto-detect and load chat exports from files, folders, zip archives or the "imessage" keyword."""
 from __future__ import annotations
 
 import tempfile
@@ -6,9 +6,10 @@ import zipfile
 from pathlib import Path
 
 from ..models import Thread
-from . import instagram, telegram, whatsapp
+from . import imessage, instagram, telegram, whatsapp
 
 _temp_dirs: list[tempfile.TemporaryDirectory] = []
+IMESSAGE_KEYWORD = "imessage"
 
 
 def _unzip(path: Path) -> Path:
@@ -19,7 +20,23 @@ def _unzip(path: Path) -> Path:
     return Path(temp_dir.name)
 
 
+def _load_imessage_default() -> list[Thread]:
+    for location in imessage.default_locations():
+        try:
+            if imessage.find_database(location):
+                return imessage.parse(location)
+        except imessage.EncryptedBackupError:
+            raise
+    raise FileNotFoundError(
+        "No iMessage database found. On Windows, make an unencrypted iPhone backup with "
+        "iTunes / Apple Devices first. On macOS, give your terminal Full Disk Access."
+    )
+
+
 def load(path: str | Path, whatsapp_date_order: str = "auto") -> list[Thread]:
+    if str(path).strip().lower() == IMESSAGE_KEYWORD:
+        return _load_imessage_default()
+
     path = Path(path).expanduser()
     if not path.exists():
         raise FileNotFoundError(path)
@@ -31,7 +48,12 @@ def load(path: str | Path, whatsapp_date_order: str = "auto") -> list[Thread]:
             return telegram.parse(path)
         if whatsapp.looks_like_export(path):
             return whatsapp.parse(path, whatsapp_date_order)
+        if imessage.find_database(path):
+            return imessage.parse(path)
         raise ValueError(f"Unrecognised export file: {path}")
+
+    if imessage.find_database(path):  # an iPhone backup folder
+        return imessage.parse(path)
 
     threads: list[Thread] = []
     if instagram.looks_like_export(path):
@@ -41,4 +63,7 @@ def load(path: str | Path, whatsapp_date_order: str = "auto") -> list[Thread]:
     for txt in path.rglob("*.txt"):
         if whatsapp.looks_like_export(txt):
             threads += whatsapp.parse(txt, whatsapp_date_order)
+    for candidate in list(path.rglob("chat.db")) + list(path.rglob("sms.db")):
+        if imessage.find_database(candidate):
+            threads += imessage.parse(candidate)
     return threads

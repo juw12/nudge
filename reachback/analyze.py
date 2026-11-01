@@ -98,7 +98,12 @@ def detect_me(threads: list[Thread], warnings: list[str] | None = None) -> set[s
 def analyze(threads: list[Thread], me: set[str] | None = None, settings: Settings | None = None) -> Summary:
     settings = settings or Settings()
     warnings: list[str] = []
-    me = me or detect_me(threads, warnings)
+    if not me:
+        known = {t.me for t in threads if t.me}
+        unknown = [t for t in threads if not t.me]
+        me = known | (detect_me(unknown, warnings) if unknown else set())
+    else:
+        me = set(me) | {t.me for t in threads if t.me}
     me_folded = {name.casefold() for name in me}
 
     def is_me(name: str) -> bool:
