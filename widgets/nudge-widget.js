@@ -1,17 +1,17 @@
-// seen widget for Scriptable (iOS / iPadOS) — https://scriptable.app
+// nudge widget for Scriptable (iOS / iPadOS) — https://scriptable.app
 //
 // Shows "Maya + 2 others are waiting on you" on your home screen, and can fire a
 // notification when you open Instagram / TikTok (via a Shortcuts automation).
 //
 // Setup (once):
-//   1. On your computer, run:  seen schedule <exports> --out "<a cloud folder>"
+//   1. On your computer, run:  nudge schedule <exports> --out "<a cloud folder>"
 //      (iCloud Drive, OneDrive, Dropbox... anything the Files app can see).
-//   2. In Scriptable: Settings -> File Bookmarks -> add that folder, name it  seen
+//   2. In Scriptable: Settings -> File Bookmarks -> add that folder, name it  nudge
 //   3. Add this script to Scriptable, then add a Scriptable widget and pick this script.
 //   4. Optional nudge-before-feed: Shortcuts -> Automation -> App -> Instagram -> "Is Opened"
-//      -> Run Script (Scriptable) "seen-widget" with parameter  notify  -> Run Immediately.
+//      -> Run Script (Scriptable) "nudge-widget" with parameter  notify  -> Run Immediately.
 
-const BOOKMARK = "seen";
+const BOOKMARK = "nudge";
 const FILE_NAME = "status.json";
 
 // Deep links that open the app where the friend is waiting.
@@ -29,7 +29,7 @@ async function loadStatus() {
   if (fm.bookmarkExists(BOOKMARK)) {
     folder = fm.bookmarkedPath(BOOKMARK);
   } else {
-    folder = fm.joinPath(fm.documentsDirectory(), "seen");
+    folder = fm.joinPath(fm.documentsDirectory(), "nudge");
   }
   const path = fm.joinPath(folder, FILE_NAME);
   if (!fm.fileExists(path)) {
@@ -59,13 +59,13 @@ function buildWidget(status) {
   widget.setPadding(14, 14, 14, 14);
 
   if (!status) {
-    addText(widget, "seen", 13, "#3b1d1d", true);
+    addText(widget, "nudge", 13, "#3b1d1d", true);
     widget.addSpacer(6);
-    addText(widget, "No status.json yet. Run `seen digest` and bookmark the folder.", 12, "#1b1b1b", false);
+    addText(widget, "No status.json yet. Run `nudge digest` and bookmark the folder.", 12, "#1b1b1b", false);
     return widget;
   }
 
-  addText(widget, "💌 seen", 12, "#3b1d1d", true);
+  addText(widget, "💌 nudge", 12, "#3b1d1d", true);
   widget.addSpacer(4);
   addText(widget, status.headline, 16, "#1b1b1b", true);
   widget.addSpacer(6);
@@ -113,7 +113,7 @@ async function sendNudge(status) {
 async function showInApp(status) {
   if (!status || !status.top.length) {
     const alert = new Alert();
-    alert.title = "seen";
+    alert.title = "nudge";
     alert.message = status ? status.headline : "No status.json found yet.";
     alert.addAction("OK");
     await alert.present();

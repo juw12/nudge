@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "seen"
+name = "nudge"
 version = "0.2.0"
 description = "See which friends you've been leaving on read while you doomscroll. Local-only analysis of your own chat exports."
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = []
 keywords = ["digital-wellbeing", "doomscrolling", "friendship", "instagram", "whatsapp", "telegram", "imessage", "personal-crm"]
 
 [project.scripts]
-seen = "seen.cli:main"
+nudge = "nudge.cli:main"
 
 [tool.setuptools]
-packages = ["seen", "seen.parsers"]
+packages = ["nudge", "nudge.parsers"]

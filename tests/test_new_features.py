@@ -4,10 +4,10 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from seen import contacts, digest
-from seen.analyze import Settings, analyze
-from seen.parsers import load
-from seen.parsers.imessage import APPLE_EPOCH, SMS_DB_BACKUP_NAME, decode_attributed_body
+from nudge import contacts, digest
+from nudge.analyze import Settings, analyze
+from nudge.parsers import load
+from nudge.parsers.imessage import APPLE_EPOCH, SMS_DB_BACKUP_NAME, decode_attributed_body
 
 AS_OF = datetime(2026, 10, 31, 22, 0)
 
@@ -93,7 +93,7 @@ def test_imessage_db_and_iphone_backup_layout(tmp_path):
 
 
 def test_digest_status_and_text():
-    from seen.sample import write_sample_export
+    from nudge.sample import write_sample_export
     import tempfile
 
     threads = load(write_sample_export(Path(tempfile.mkdtemp()), as_of=AS_OF))

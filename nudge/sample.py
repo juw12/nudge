@@ -1,4 +1,4 @@
-"""Generate a fake Instagram export so `seen demo` works with no real data."""
+"""Generate a fake Instagram export so `nudge demo` works with no real data."""
 from __future__ import annotations
 
 import json
