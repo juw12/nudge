@@ -76,23 +76,44 @@ class Summary:
 
 
 def detect_me(threads: list[Thread], warnings: list[str] | None = None) -> set[str]:
-    """You are the sender who appears in the most threads, per platform."""
+    """You are the sender who appears in the most threads, per platform.
+
+    When a platform is a tie (e.g. a single WhatsApp chat), prefer the candidate whose name
+    matches "you" on another platform ("Sam" vs "Sam Rivera").
+    """
     by_source: dict[str, Counter] = defaultdict(Counter)
     for thread in threads:
         for sender in {m.sender for m in thread.messages}:
             by_source[thread.source][sender] += 1
-    me = set()
+    confident: dict[str, str] = {}
+    tied: dict[str, list[str]] = {}
     for source, counter in by_source.items():
-        ranked = counter.most_common(2)
+        ranked = counter.most_common()
         if not ranked:
             continue
-        me.add(ranked[0][0])
-        if warnings is not None and len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        candidates = sorted(name for name, count in ranked if count == ranked[0][1])
+        if len(candidates) == 1:
+            confident[source] = candidates[0]
+        else:
+            tied[source] = candidates
+    me = set(confident.values())
+    for source, candidates in tied.items():
+        match = next(
+            (c for c in candidates if any(_same_person(c, name) for name in confident.values())),
+            None,
+        )
+        me.add(match or candidates[0])
+        if match is None and warnings is not None:
             warnings.append(
-                f"Couldn't tell which {source} name is you (guessed '{ranked[0][0]}'). "
+                f"Couldn't tell which {source} name is you (guessed '{candidates[0]}'). "
                 "Pass --me \"Your Name\" to be sure."
             )
     return me
+
+
+def _same_person(a: str, b: str) -> bool:
+    x, y = a.strip().casefold(), b.strip().casefold()
+    return x == y or x.split()[:1] == y.split()[:1]
 
 
 def analyze(threads: list[Thread], me: set[str] | None = None, settings: Settings | None = None) -> Summary:

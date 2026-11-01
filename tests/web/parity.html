@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>nudge engine parity</title></head>
+<body>
+<pre id="out">pending</pre>
+<script type="module">
+  import { analyze, classifyShare } from "/docs/engine.js";
+  import { loadFiles } from "/docs/loader.js";
+
+  const out = document.getElementById("out");
+
+  async function fileFrom(url, name) {
+    const blob = await (await fetch(url)).blob();
+    return new File([blob], name);
+  }
+
+  function normalise(summary) {
+    return {
+      asOf: summary.asOf,
+      me: [...summary.me].sort(),
+      friends: summary.friends.map((f) => ({
+        friend: f.friend,
+        source: f.source,
+        sharesReceived: f.sharesReceived,
+        sharesReplied: f.sharesReplied,
+        sharesReactedOnly: f.sharesReactedOnly,
+        pending: f.pending.map((p) => p.kind),
+        unansweredStreak: f.unansweredStreak,
+        theirStarts: f.theirStarts,
+        myStarts: f.myStarts,
+        score: f.score,
+        nudge: f.nudge,
+        opener: f.opener,
+      })),
+    };
+  }
+
+  try {
+    const cases = {};
+    const demo = await loadFiles([await fileFrom("/docs/demo/nudge-demo.zip", "nudge-demo.zip")]);
+    for (const days of [7, 30, 90]) {
+      cases[`demo_${days}`] = normalise(analyze(demo.threads, { days }));
+    }
+    const whatsapp = await loadFiles([
+      await fileFrom("/tests/web/fixtures/WhatsApp%20Chat%20with%20Kai.txt", "WhatsApp Chat with Kai.txt"),
+      await fileFrom("/tests/web/fixtures/ios.txt", "ios.txt"),
+    ]);
+    cases.whatsapp = normalise(analyze(whatsapp.threads, { days: 30, me: ["Sam"] }));
+    const telegram = await loadFiles([await fileFrom("/tests/web/fixtures/result.json", "result.json")]);
+    cases.telegram = normalise(analyze(telegram.threads, { days: 30, me: ["Sam"] }));
+    const mixed = await loadFiles([
+      await fileFrom("/docs/demo/nudge-demo.zip", "instagram.zip"),
+      await fileFrom("/tests/web/fixtures/WhatsApp%20Chat%20with%20Kai.txt", "WhatsApp Chat with Kai.txt"),
+      await fileFrom("/tests/web/fixtures/result.json", "result.json"),
+    ]);
+    cases.mixed_auto_me = normalise(analyze(mixed.threads, { days: 90 }));
+    out.textContent = JSON.stringify(cases);
+    await fetch("/__result/parity", { method: "POST", body: out.textContent });
+  } catch (error) {
+    out.textContent = "ERROR " + (error && error.stack ? error.stack : error);
+    await fetch("/__result/parity", { method: "POST", body: out.textContent });
+  }
+</script>
+</body>
+</html>

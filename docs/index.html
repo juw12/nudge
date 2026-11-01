@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>nudge · who's waiting on you</title>
+  <meta name="description" content="Friends keep sending you reels while you doomscroll. Nudge shows who you've been leaving on read — privately, on your device.">
+  <meta name="theme-color" content="#ff6b6b">
+  <meta property="og:title" content="nudge · who's waiting on you">
+  <meta property="og:description" content="See which friends you've been leaving on read. 100% on-device, no account.">
+  <meta property="og:image" content="icons/icon-512.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="nudge">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="nudge home">
+      <img src="icons/icon-192.png" alt="" width="28" height="28">
+      <span>nudge</span>
+    </a>
+    <button id="install-button" class="ghost small" hidden>Install app</button>
+  </header>
+
+  <main>
+    <!-- Welcome / import -->
+    <section id="welcome-view" class="view">
+      <h1>Who's waiting on you?</h1>
+      <p class="lede">Friends keep sending you reels while you scroll past them. Nudge reads your own chat exports and shows who you've been leaving on read, with a message ready to send.</p>
+
+      <label id="drop-zone" class="drop-zone" tabindex="0">
+        <input id="file-input" type="file" multiple accept=".zip,.json,.txt" hidden>
+        <span class="drop-icon">💌</span>
+        <strong>Drop your chat exports here</strong>
+        <span class="muted">Instagram / Messenger .zip, WhatsApp chats (.txt or .zip), Telegram result.json</span>
+        <span class="button primary">Choose files</span>
+      </label>
+      <div class="row center gap">
+        <label class="link-button">
+          <input id="folder-input" type="file" webkitdirectory hidden>
+          or pick an unzipped folder
+        </label>
+        <button id="demo-button" class="link-button">try it with demo data</button>
+      </div>
+
+      <ul class="badges">
+        <li>🔒 Nothing leaves your device</li>
+        <li>✈️ Works offline</li>
+        <li>🙅 No account, no tracking</li>
+      </ul>
+
+      <h2 class="section-title">How to get your chats</h2>
+      <details class="howto">
+        <summary>Instagram</summary>
+        <ol>
+          <li>Instagram → Settings → <b>Accounts Center</b> → Your information and permissions → <b>Download your information</b>.</li>
+          <li>Choose <b>Some of your information → Messages</b>, format <b>JSON</b>, date range e.g. last month.</li>
+          <li>When the email arrives, download the .zip and drop it here. No need to unzip.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>WhatsApp</summary>
+        <ol>
+          <li>Open a chat → tap the name (iPhone) or ⋮ (Android) → <b>Export chat</b> → <b>Without media</b>.</li>
+          <li>Save it to Files / Drive, then drop the .zip or .txt here. Do it for each friend you care about.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>Messenger</summary>
+        <ol>
+          <li>Facebook → Settings → Accounts Center → <b>Download your information</b> → Messages, format <b>JSON</b>.</li>
+          <li>Drop the .zip here.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>Telegram</summary>
+        <ol>
+          <li>Telegram Desktop → Settings → Advanced → <b>Export Telegram data</b> → Personal chats, format <b>Machine-readable JSON</b>.</li>
+          <li>Drop <code>result.json</code> here.</li>
+        </ol>
+      </details>
+      <details class="howto">
+        <summary>iMessage</summary>
+        <p>Browsers can't open the iPhone message database. Use the <a href="https://github.com/juw12/nudge#install">nudge command-line tool</a> on your computer: <code>nudge digest imessage</code>.</p>
+      </details>
+    </section>
+
+    <!-- Working -->
+    <section id="busy-view" class="view" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="busy-text" class="muted center">Reading your chats…</p>
+    </section>
+
+    <!-- Results -->
+    <section id="results-view" class="view" hidden>
+      <div id="demo-banner" class="banner" hidden>You're looking at demo data. <button class="link-button" data-action="import">Use your own chats →</button></div>
+
+      <div class="hero">
+        <p id="hero-kicker" class="kicker"></p>
+        <h1 id="hero-headline"></h1>
+        <p id="hero-stats"></p>
+      </div>
+      <p id="stale-note" class="note" hidden></p>
+
+      <div class="controls">
+        <div class="chips" role="group" aria-label="Time window" id="window-chips"></div>
+        <div id="me-picker" class="me-picker" hidden></div>
+      </div>
+      <p id="me-warning" class="note warn" hidden>Not sure which name is you. Pick it above so the results are right.</p>
+
+      <h2 class="section-title" id="waiting-title">Waiting on you</h2>
+      <div id="waiting-list" class="cards"></div>
+
+      <h2 class="section-title" id="hello-title" hidden>Could use a hello</h2>
+      <div id="hello-list" class="cards"></div>
+
+      <details id="caught-up" class="caught-up" hidden>
+        <summary id="caught-up-summary"></summary>
+        <div id="caught-up-list"></div>
+      </details>
+
+      <div class="row center gap actions-bottom">
+        <button class="button" data-action="import">Add a fresh export</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Your chats are read in this browser tab and never uploaded. Results are saved only on this device.</p>
+    <p id="ios-hint" hidden>📱 On iPhone: tap <b>Share</b> → <b>Add to Home Screen</b> to install nudge.</p>
+    <p class="row center gap">
+      <button id="forget-button" class="link-button">Forget everything</button>
+      <span class="muted">·</span>
+      <a href="https://github.com/juw12/nudge">Source on GitHub</a>
+    </p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

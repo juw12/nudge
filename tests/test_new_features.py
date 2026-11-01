@@ -116,3 +116,22 @@ def test_schedule_command_shapes(tmp_path):
         assert "SUN" in command and "19:00" in command
     else:
         assert command.startswith("0 19 * * 0 ")
+
+
+def test_me_detection_across_platforms(tmp_path):
+    """A single WhatsApp chat is a tie; your Instagram name breaks it ("Sam" ~ "Sam Rivera")."""
+    from nudge.sample import write_sample_export
+
+    whatsapp = tmp_path / "WhatsApp Chat with Kai.txt"
+    whatsapp.write_text(
+        "12/28/26, 9:15 PM - Kai: https://www.instagram.com/reel/XYZ/\n"
+        "12/28/26, 9:20 PM - Sam: lol\n"
+        "12/30/26, 9:20 PM - Kai: hello?\n",
+        encoding="utf-8",
+    )
+    threads = load(write_sample_export(tmp_path / "ig")) + load(whatsapp)
+    summary = analyze(threads, settings=Settings(days=90))
+    assert summary.me == {"Sam Rivera", "Sam"}
+    assert not summary.warnings
+    kai = next(f for f in summary.friends if f.friend == "Kai")
+    assert kai.unanswered_streak == 1

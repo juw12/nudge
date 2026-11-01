@@ -23,6 +23,23 @@ your friendships:
 It also writes a self-contained HTML page ("Who's waiting on you") with clickable links to every
 unanswered reel and a copy button for the opener.
 
+## Use the app
+
+**👉 [juw12.github.io/nudge](https://juw12.github.io/nudge/)** · [try the demo](https://juw12.github.io/nudge/?demo=1)
+
+Drop your Instagram, WhatsApp, Messenger or Telegram export in the page. Nudge reads it **inside your
+browser**: nothing is uploaded, and there's no account or server.
+
+* **Install it.** On a phone, tap *Share → Add to Home Screen* (iPhone) or *Install app* (Android). On a
+  computer, use the install icon in Edge or Chrome's address bar. Once installed it works offline, and
+  on Windows you can right-click a chat export and choose *Open with → nudge*.
+* **Open it before you open a feed.** Your last results are saved on your device. Tap **✓ Replied**
+  as you catch up, and when that friend messages again in your next export they come back.
+* **Different name per app?** Pick "You on WhatsApp / Instagram / …" if it guessed wrong.
+
+The app lives in `docs/` (plain HTML + JavaScript, no build step). The command-line tool below adds
+iMessage, scheduled weekly digests and desktop notifications.
+
 ## Why
 
 Tech keeps getting better at connecting us, but people feel more disconnected than ever. A reel
@@ -168,6 +185,9 @@ Each friend gets a priority score (higher = more overdue):
 ```bash
 python -m pytest            # or, without pytest installed:
 python tests/run_tests.py
+
+# web app: serve the repo and open the engine parity check, which must match the Python output
+python -m http.server 8000   # then visit http://localhost:8000/tests/web/parity.html
 ```
 
 MIT licensed. Be the friend who replies. 💛
