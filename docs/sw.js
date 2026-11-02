@@ -1,5 +1,5 @@
 // Offline support + Android share target.
-const CACHE = "nudge-v2";
+const CACHE = "nudge-v3";
 const SHELL = [
   "./",
   "index.html",

@@ -1,4 +1,4 @@
-// nudge web app: UI, on-device persistence, auto-refresh from a folder, share target, install + offline.
+// Nudge web app: UI, on-device persistence, auto-refresh from a folder, share target, install + offline.
 import { analyze, headline, isWaiting, lastActivity, responseRate, senderNamesBySource } from "./engine.js";
 import { canRead, connectFolder, folderSupported, forgetFolder, savedFolder, scanFolder } from "./folder.js";
 import { loadFiles } from "./loader.js";
@@ -19,6 +19,39 @@ const APP_LINKS = {
   telegram: { label: "Telegram", url: IS_TOUCH ? "tg://" : "https://web.telegram.org/" },
   imessage: { label: "Messages", url: "sms:" },
 };
+
+// Line icons (Lucide-style paths), rendered inline so the app works offline.
+const ICONS = {
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/>',
+};
+
+function icon(name, size = 16) {
+  return (
+    `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`
+  );
+}
+
+function hydrateIcons(root = document) {
+  for (const element of root.querySelectorAll("[data-icon]")) {
+    if (!element.querySelector(":scope > svg.icon")) {
+      element.insertAdjacentHTML("afterbegin", icon(element.dataset.icon, element.classList.contains("btn-sm") ? 14 : 16));
+    }
+  }
+}
 
 const state = {
   threads: null, // parsed chats; kept on this device in IndexedDB (no message text)
@@ -55,7 +88,7 @@ function save() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(payload));
   } catch {
-    toast("Couldn't save on this device (storage full?)");
+    toast("Could not save results on this device");
   }
 }
 
@@ -110,7 +143,33 @@ function daysAgo(ts, reference = Date.now()) {
   if (days <= 0) {
     return "today";
   }
-  return days === 1 ? "yesterday" : `${days}d ago`;
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+function duration(ts, reference) {
+  const days = Math.max(0, Math.floor((reference - ts) / DAY));
+  if (days === 0) {
+    return "since today";
+  }
+  return days === 1 ? "1 day" : `${days} days`;
+}
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function timeLabel(ts) {
+  const minutes = Math.round((Date.now() - ts) / 60000);
+  if (minutes < 1) {
+    return "just now";
+  }
+  if (minutes < 60) {
+    return `${minutes} min ago`;
+  }
+  if (Date.now() - ts < DAY) {
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return daysAgo(ts);
 }
 
 function initials(name) {
@@ -133,14 +192,23 @@ function toast(message) {
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => {
     element.hidden = true;
-  }, 2200);
+  }, 2400);
 }
 
 function show(view) {
   for (const id of ["welcome-view", "busy-view", "results-view"]) {
     $(id).hidden = id !== view;
   }
+  $("add-files-top").hidden = view !== "results-view" || state.isDemo;
+  if (view !== "results-view") {
+    $("source-bar").hidden = true;
+    $("refresh-folder").hidden = true;
+    $("connect-folder-2").hidden = true;
+  }
   window.scrollTo({ top: 0 });
+  if (view === "results-view" && state.summaries) {
+    renderSourceBar();
+  }
 }
 
 function isDone(friend) {
@@ -177,7 +245,7 @@ async function importFiles(fileList, { quiet = false } = {}) {
     if (!threads.length) {
       show(state.summaries ? "results-view" : "welcome-view");
       if (!quiet) {
-        toast(skipped.length ? "Couldn't find any chats in those files" : "No chats found");
+        toast(skipped.length ? "No chats found in the selected files" : "No chats found");
       }
       return 0;
     }
@@ -188,14 +256,29 @@ async function importFiles(fileList, { quiet = false } = {}) {
     runAnalysis();
     renderResults();
     show("results-view");
-    toast(`Updated with ${threads.length} chat${threads.length === 1 ? "" : "s"}`);
+    toast(`Imported ${threads.length} conversation${threads.length === 1 ? "" : "s"}`);
     return threads.length;
   } catch (error) {
     console.error(error);
     show(state.summaries ? "results-view" : "welcome-view");
-    toast(`Something went wrong: ${error.message}`);
+    toast(`Import failed: ${error.message}`);
     return 0;
   }
+}
+
+async function loadDemo() {
+  show("busy-view");
+  $("busy-text").textContent = "Loading sample data…";
+  const response = await fetch("demo/nudge-demo.zip");
+  const blob = await response.blob();
+  const { threads } = await loadFiles([new File([blob], "instagram-demo.zip")]);
+  state.threads = threads;
+  state.isDemo = true;
+  state.me = null;
+  state.done = {};
+  runAnalysis();
+  renderResults();
+  show("results-view");
 }
 
 // ------------------------------------------------------------------ connected folder
@@ -220,7 +303,7 @@ async function refreshFromFolder({ ask = false, quiet = false } = {}) {
     save();
     renderSourceBar();
     if (!quiet) {
-      toast("No new exports since last time");
+      toast("No new exports found");
     }
     return;
   }
@@ -228,7 +311,7 @@ async function refreshFromFolder({ ask = false, quiet = false } = {}) {
   if (!items.length) {
     save();
     renderSourceBar();
-    toast(`No chat exports in “${handle.name}” yet`);
+    toast(`No chat exports found in “${handle.name}”`);
     return;
   }
   await importFiles(items, { quiet });
@@ -248,7 +331,7 @@ async function onConnectFolder() {
     }
   } catch (error) {
     if (error.name !== "AbortError") {
-      toast(`Couldn't connect the folder: ${error.message}`);
+      toast(`Could not connect the folder: ${error.message}`);
     }
   }
 }
@@ -257,40 +340,40 @@ function renderSourceBar() {
   const bar = $("source-bar");
   const refresh = $("refresh-folder");
   const connect = $("connect-folder-2");
-  if (state.isDemo) {
+  const onResults = !$("results-view").hidden;
+  if (state.isDemo || !onResults) {
     bar.hidden = true;
+    refresh.hidden = true;
+    connect.hidden = true;
     return;
   }
-  bar.hidden = false;
   if (state.folderName) {
+    bar.hidden = false;
     refresh.hidden = false;
     connect.hidden = true;
     if (state.folderNeedsClick) {
-      $("source-text").textContent = `📁 ${state.folderName} · tap to check for new chats`;
-      refresh.textContent = "Check now";
-      refresh.classList.add("primary");
+      $("source-text").textContent = `${state.folderName} · permission needed`;
+      refresh.classList.replace("btn-secondary", "btn-attention");
+      setButtonLabel(refresh, "Check now");
     } else {
-      const checked = state.folderCheckedAt ? daysAgoOrTime(state.folderCheckedAt) : "not yet";
-      $("source-text").textContent = `📁 Auto-refresh from “${state.folderName}” · checked ${checked}`;
-      refresh.textContent = "Check for new chats";
-      refresh.classList.remove("primary");
+      const checked = state.folderCheckedAt ? timeLabel(state.folderCheckedAt) : "not yet";
+      $("source-text").textContent = `${state.folderName} · synced ${checked}`;
+      refresh.classList.replace("btn-attention", "btn-secondary");
+      setButtonLabel(refresh, "Check for new chats");
     }
   } else {
+    bar.hidden = true;
     refresh.hidden = true;
     connect.hidden = !folderSupported;
-    $("source-text").textContent = IS_ANDROID ? "📱 Tip: in WhatsApp, Export chat → nudge" : "";
   }
 }
 
-function daysAgoOrTime(ts) {
-  const minutes = Math.round((Date.now() - ts) / 60000);
-  if (minutes < 1) {
-    return "just now";
+function setButtonLabel(button, text) {
+  const svg = button.querySelector("svg.icon");
+  button.textContent = text;
+  if (svg) {
+    button.prepend(svg);
   }
-  if (minutes < 60) {
-    return `${minutes} min ago`;
-  }
-  return daysAgo(ts).replace("today", new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
 }
 
 // ------------------------------------------------------------------ shared files (Android share target)
@@ -307,42 +390,25 @@ async function importShared() {
   }
 }
 
-async function loadDemo() {
-  show("busy-view");
-  $("busy-text").textContent = "Loading demo chats…";
-  const response = await fetch("demo/nudge-demo.zip");
-  const blob = await response.blob();
-  const { threads } = await loadFiles([new File([blob], "instagram-demo.zip")]);
-  state.threads = threads;
-  state.isDemo = true;
-  state.me = null;
-  state.done = {};
-  runAnalysis();
-  renderResults();
-  show("results-view");
-}
+// ------------------------------------------------------------------ rendering
 
 function renderWelcomeExtras() {
-  const card = $("auto-card");
   const text = $("auto-card-text");
   const button = $("connect-folder");
   if (folderSupported) {
-    text.textContent = "Connect your Downloads folder once. Each time you open nudge, it picks up new Instagram, WhatsApp and Telegram exports by itself.";
     button.hidden = false;
+    text.textContent = "Connect your Downloads folder once and Nudge imports new exports automatically each time you open it.";
   } else if (IS_ANDROID) {
-    text.textContent = "Install nudge (browser menu → Install app). Then in WhatsApp: Export chat → nudge. It lands here directly.";
     button.hidden = true;
+    text.textContent = "Install Nudge from your browser menu, then share WhatsApp exports directly to it via Export chat → Nudge.";
   } else if (IS_IOS) {
-    text.textContent = "Save exports to Files and tap Choose files. nudge remembers every chat, so you only add what's new.";
     button.hidden = true;
+    text.textContent = "Save exports to Files, then choose them here. Nudge remembers every conversation, so you only add what's new.";
   } else {
-    text.textContent = "nudge remembers every chat you add, so next time you only add what's new.";
     button.hidden = true;
+    text.textContent = "Nudge remembers every conversation you add, so next time you only add what's new.";
   }
-  card.hidden = false;
 }
-
-// ------------------------------------------------------------------ rendering
 
 function renderResults() {
   const summary = state.summaries[state.days];
@@ -357,16 +423,23 @@ function renderResults() {
   const shares = friends.reduce((sum, f) => sum + f.sharesReceived, 0);
   const answered = friends.reduce((sum, f) => sum + f.sharesReplied + f.sharesReactedOnly, 0);
   const pending = waiting.reduce((sum, f) => sum + f.pending.length, 0);
-  $("hero-kicker").textContent = `Last ${state.days} days · up to ${new Date(summary.asOf).toLocaleDateString()}`;
+  const sources = new Set(friends.map((f) => (APP_LINKS[f.source] || { label: f.source }).label));
+
+  $("hero-kicker").textContent = `Last ${state.days} days · data through ${formatDate(summary.asOf)}`;
   $("hero-headline").textContent = headline(waiting);
-  $("hero-stats").textContent = shares
-    ? `Friends shared ${shares} reels & links with you. You answered ${answered} (${Math.round((answered / shares) * 100)}%). ${pending} still unanswered.`
-    : "Every message is someone thinking of you.";
+
+  $("metric-waiting").textContent = String(waiting.length);
+  $("metric-waiting-sub").textContent = waiting.length === 1 ? "person" : "people";
+  $("metric-pending").textContent = String(pending);
+  $("metric-rate").textContent = shares ? `${Math.round((answered / shares) * 100)}%` : "—";
+  $("metric-rate-sub").textContent = shares ? `${answered} of ${shares} shares answered` : "No shares in this period";
+  $("metric-chats").textContent = String(friends.length);
+  $("metric-chats-sub").textContent = [...sources].join(", ") || "None in this period";
 
   const ageDays = Math.floor((Date.now() - summary.asOf) / DAY);
   const stale = $("stale-note");
   stale.hidden = state.isDemo || ageDays < STALE_DAYS;
-  stale.textContent = `Your newest message is ${ageDays} days old. Add a fresh export to see who's waiting now.`;
+  stale.textContent = `The newest message in your data is ${ageDays} days old. Add a recent export to see who is waiting now.`;
 
   $("window-chips").innerHTML = WINDOWS.map(
     (days) => `<button data-days="${days}" aria-pressed="${days === state.days}">${days} days</button>`,
@@ -374,34 +447,40 @@ function renderResults() {
 
   renderMePicker(summary);
 
-  $("waiting-title").hidden = false;
+  $("waiting-count").textContent = String(waiting.length);
   $("waiting-list").innerHTML = waiting.length
-    ? waiting.map((f) => cardHtml(f, summary.asOf)).join("")
-    : `<p class="muted">Nobody's waiting on you in this window. 🎉</p>`;
-  $("hello-title").hidden = !hello.length;
-  $("hello-list").innerHTML = hello.map((f) => cardHtml(f, summary.asOf)).join("");
+    ? waiting.map((f) => itemHtml(f, summary.asOf)).join("")
+    : `<div class="empty">No one is waiting on a reply in this period.</div>`;
+
+  $("hello-section").hidden = !hello.length;
+  $("hello-count").textContent = String(hello.length);
+  $("hello-list").innerHTML = hello.map((f) => itemHtml(f, summary.asOf)).join("");
 
   const caught = $("caught-up");
   caught.hidden = !caughtUp.length;
-  $("caught-up-summary").textContent = `Caught up (${caughtUp.length})`;
+  $("caught-up-summary").textContent = `Up to date (${caughtUp.length})`;
   $("caught-up-list").innerHTML = caughtUp
     .map((f) => {
-      const undo = state.done[f.key] != null ? `<button class="link-button" data-undo="${esc(f.key)}">undo</button>` : "";
-      return `<div class="caught-row"><span>${esc(f.friend)} <span class="muted">· ${esc(f.source)}</span></span>${undo}</div>`;
+      const app = APP_LINKS[f.source] || { label: f.source };
+      const undo = state.done[f.key] != null
+        ? `<button class="btn btn-ghost btn-sm" data-undo="${esc(f.key)}">${icon("undo", 14)}Undo</button>`
+        : "";
+      return `<div class="caught-row"><span>${esc(f.friend)} <span class="muted">· ${esc(app.label)}</span></span>${undo}</div>`;
     })
     .join("");
+  hydrateIcons(caught);
 }
 
 function renderMePicker(summary) {
+  const identity = $("identity");
   const picker = $("me-picker");
   const warning = $("me-warning");
   if (!state.threads) {
-    picker.hidden = true;
+    identity.hidden = true;
     warning.hidden = true;
     return;
   }
   const bySource = senderNamesBySource(state.threads);
-  const multipleApps = bySource.size > 1;
   const rows = [];
   for (const [source, allNames] of bySource) {
     const names = allNames.slice(0, 12);
@@ -409,62 +488,77 @@ function renderMePicker(summary) {
       continue;
     }
     const current = names.find((name) => summary.me.includes(name)) || names[0];
-    const label = multipleApps ? `You on ${(APP_LINKS[source] || { label: source }).label}` : "You are";
+    const label = (APP_LINKS[source] || { label: source }).label;
     const options = names
       .map((name) => `<option value="${esc(name)}" ${name === current ? "selected" : ""}>${esc(name)}</option>`)
       .join("");
     rows.push(`<label><span>${esc(label)}</span><select data-me-source="${esc(source)}">${options}</select></label>`);
   }
   picker.innerHTML = rows.join("");
-  picker.hidden = !rows.length;
-  warning.hidden = !(summary.warnings.length && !state.me);
+  identity.hidden = !rows.length;
+  const needsAttention = Boolean(summary.warnings.length && !state.me);
+  warning.hidden = !needsAttention;
+  if (needsAttention) {
+    identity.open = true;
+  }
 }
 
-function cardHtml(friend, asOf) {
-  const app = APP_LINKS[friend.source] || { label: "chat", url: "#" };
+function itemHtml(friend, asOf) {
+  const app = APP_LINKS[friend.source] || { label: friend.source, url: "#" };
   const rate = responseRate(friend);
-  const tags = [`<span class="tag">${esc(app.label)}</span>`];
-  if (friend.pending.length) {
-    tags.push(`<span class="tag hot">${friend.pending.length} unseen</span>`);
-  }
-  if (friend.unansweredStreak) {
-    tags.push(`<span class="tag hot">waiting ${esc(daysAgo(friend.waitingSince, asOf).replace(" ago", ""))}</span>`);
-  }
-  tags.push(`<span class="tag">you last wrote ${esc(daysAgo(friend.lastFromMe, asOf))}</span>`);
 
-  const meter =
-    rate == null
-      ? ""
-      : `<div class="meter"><i style="width:${Math.round(rate * 100)}%"></i></div>
-         <div class="meter-label">You answered ${Math.round(rate * 100)}% of what they shared · they started ${friend.theirStarts} chats, you ${friend.myStarts}</div>`;
+  const meta = [];
+  if (friend.unansweredStreak && friend.waitingSince != null) {
+    meta.push(`<span class="pill pill-warn">${icon("clock", 12)}Waiting ${esc(duration(friend.waitingSince, asOf))}</span>`);
+  }
+  if (friend.pending.length) {
+    meta.push(`<span class="pill pill-danger">${friend.pending.length} unanswered share${friend.pending.length === 1 ? "" : "s"}</span>`);
+  }
+  meta.push(`<span>Your last message: ${esc(daysAgo(friend.lastFromMe, asOf))}</span>`);
+
+  const suggestion = friend.opener
+    ? `<div class="suggestion">
+         <div class="suggestion-label">Suggested message</div>
+         <p class="suggestion-text">${esc(friend.opener)}</p>
+         <div class="suggestion-actions">
+           <button class="btn btn-ghost btn-sm" data-copy="${esc(friend.opener)}">${icon("copy", 14)}Copy</button>
+           <a class="btn btn-ghost btn-sm" href="${esc(app.url)}" target="_blank" rel="noopener">${icon("external", 14)}Open ${esc(app.label)}</a>
+         </div>
+       </div>`
+    : `<div class="suggestion-actions solo">
+         <a class="btn btn-secondary btn-sm" href="${esc(app.url)}" target="_blank" rel="noopener">${icon("external", 14)}Open ${esc(app.label)}</a>
+       </div>`;
+
+  const rateBlock = rate == null
+    ? ""
+    : `<span class="rate"><span class="meter"><i style="width:${Math.round(rate * 100)}%"></i></span>${Math.round(rate * 100)}% of shares answered</span>`;
 
   const links = [...friend.pending]
     .reverse()
     .slice(0, 6)
     .map((p) => `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.kind)}</a> <span class="muted">· ${esc(daysAgo(p.ts, asOf))}</span></li>`)
     .join("");
-  const pendingBlock = links
-    ? `<details class="pending"><summary>What they sent (${friend.pending.length})</summary><ul>${links}</ul></details>`
+  const shared = links
+    ? `<details class="shared"><summary>View shared items (${friend.pending.length})</summary><ul>${links}</ul></details>`
     : "";
 
-  const opener = friend.opener ? `<p class="bubble">${esc(friend.opener)}</p>` : "";
-  const copy = friend.opener ? `<button class="small" data-copy="${esc(friend.opener)}">Copy message</button>` : "";
-
   return `
-  <article class="card" data-key="${esc(friend.key)}">
-    <div class="card-head">
-      <div class="avatar" style="background:hsl(${hue(friend.friend)} 65% 55%)">${esc(initials(friend.friend))}</div>
-      <div class="who"><strong>${esc(friend.friend)}</strong><div class="tags">${tags.join("")}</div></div>
+  <article class="card item" data-key="${esc(friend.key)}">
+    <div class="item-head">
+      <div class="avatar" style="--hue:${hue(friend.friend)}">${esc(initials(friend.friend))}</div>
+      <div class="item-title">
+        <div class="item-name"><strong>${esc(friend.friend)}</strong><span class="app-badge">${esc(app.label)}</span></div>
+        <div class="item-meta">${meta.join("")}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm done" data-done="${esc(friend.key)}" title="Mark as replied">${icon("check", 14)}<span class="label">Mark replied</span></button>
     </div>
-    <p class="nudge-text">${esc(friend.nudge)}</p>
-    ${opener}
-    <div class="card-actions">
-      ${copy}
-      <a class="button small" href="${esc(app.url)}" target="_blank" rel="noopener">Open ${esc(app.label)}</a>
-      <button class="small done" data-done="${esc(friend.key)}">✓ Replied</button>
+    <p class="item-summary">${esc(friend.nudge)}</p>
+    ${suggestion}
+    <div class="item-foot">
+      ${rateBlock}
+      <span>Conversations started: them ${friend.theirStarts}, you ${friend.myStarts}</span>
+      ${shared}
     </div>
-    ${meter}
-    ${pendingBlock}
   </article>`;
 }
 
@@ -508,13 +602,12 @@ function wireEvents() {
   });
 
   $("demo-button").addEventListener("click", loadDemo);
-
   $("connect-folder").addEventListener("click", onConnectFolder);
   $("connect-folder-2").addEventListener("click", onConnectFolder);
   $("refresh-folder").addEventListener("click", async () => {
     const button = $("refresh-folder");
     button.disabled = true;
-    button.textContent = "Checking…";
+    setButtonLabel(button, "Checking…");
     try {
       await refreshFromFolder({ ask: true, quiet: false });
     } finally {
@@ -524,7 +617,7 @@ function wireEvents() {
   });
 
   $("forget-button").addEventListener("click", async () => {
-    if (!confirm("Delete nudge's saved results from this device?")) {
+    if (!confirm("Delete all Nudge data stored on this device?")) {
       return;
     }
     localStorage.removeItem(STORE_KEY);
@@ -542,13 +635,19 @@ function wireEvents() {
       folderSignature: null,
       folderNeedsClick: false,
     });
+    renderWelcomeExtras();
     show("welcome-view");
-    toast("Forgotten. Nothing left on this device.");
+    toast("All data deleted from this device");
   });
 
   document.addEventListener("click", async (event) => {
     const target = event.target.closest("button, a");
     if (!target) {
+      return;
+    }
+    if (target.dataset.action === "pick-files") {
+      event.preventDefault();
+      fileInput.click();
       return;
     }
     if (target.dataset.action === "import") {
@@ -566,9 +665,9 @@ function wireEvents() {
     if (target.dataset.copy) {
       try {
         await navigator.clipboard.writeText(target.dataset.copy);
-        toast("Copied. Now paste it to them 💌");
+        toast("Message copied to clipboard");
       } catch {
-        toast("Couldn't copy. Long-press the message instead");
+        toast("Could not copy. Select the text instead");
       }
       return;
     }
@@ -577,8 +676,8 @@ function wireEvents() {
       state.done[target.dataset.done] = Date.now();
       save();
       card.classList.add("leaving");
-      setTimeout(renderResults, 280);
-      toast("Nice. That's how friendships stay alive.");
+      setTimeout(renderResults, 250);
+      toast("Marked as replied");
       return;
     }
     if (target.dataset.undo) {
@@ -627,7 +726,7 @@ function setupInstall() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
-  // Installed app on Windows/ChromeOS: "Open with nudge" on a .zip / .json / .txt lands here.
+  // Installed app on Windows/ChromeOS: "Open with Nudge" on a .zip / .json / .txt lands here.
   if ("launchQueue" in window) {
     window.launchQueue.setConsumer(async (launchParams) => {
       if (!launchParams.files || !launchParams.files.length) {
@@ -642,6 +741,7 @@ function setupInstall() {
 // ------------------------------------------------------------------ start
 
 async function start() {
+  hydrateIcons();
   wireEvents();
   setupInstall();
   renderWelcomeExtras();
@@ -653,17 +753,16 @@ async function start() {
   }
 
   // 1. Show the last results instantly, then load the stored chats behind them.
-  const hadResults = restore();
-  if (hadResults) {
-    renderResults();
+  if (restore()) {
     show("results-view");
+    renderResults();
   } else {
     show("welcome-view");
   }
   if (await restoreThreads()) {
     runAnalysis();
-    renderResults();
     show("results-view");
+    renderResults();
   }
 
   // 2. Files shared from another app (Android share sheet).

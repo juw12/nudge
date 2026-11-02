@@ -235,7 +235,7 @@ def _suggest(report: FriendReport, as_of: datetime) -> tuple[str, str]:
         nudge = (
             f"{name} sent you {pending} thing{'s' * (pending > 1)} you never answered. "
             f"Watch the newest {newest.share_kind} and say what it reminded you of. "
-            "Something more than 😂."
+            "A real reply, not just an emoji."
         )
         opener = _pick(report.friend, [
             f"ok finally caught up on what you sent 😅 the latest {newest.share_kind} is SO us. how've you been?",

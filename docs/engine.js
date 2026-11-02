@@ -580,7 +580,7 @@ function suggest(report, asOf) {
     const newest = report.pending[pendingCount - 1];
     return [
       `${name} sent you ${pendingCount} thing${pendingCount > 1 ? "s" : ""} you never answered. ` +
-        `Watch the newest ${newest.kind} and say what it reminded you of. Something more than 😂.`,
+        `Watch the newest ${newest.kind} and say what it reminded you of. A real reply, not just an emoji.`,
       pick(report.friend, [
         `ok finally caught up on what you sent 😅 the latest ${newest.kind} is SO us. how've you been?`,
         `just binged everything you sent me lol. that last ${newest.kind} 💀 when are we hanging out?`,
