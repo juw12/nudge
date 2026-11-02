@@ -54,13 +54,15 @@ function routeText(name, text, containerName, sink) {
   sink.skipped.push(name);
 }
 
-export async function loadFiles(files, onProgress = () => {}) {
+// `items` are File objects, or { file, path } when they come from a connected folder.
+export async function loadFiles(items, onProgress = () => {}) {
   const sink = { threads: [], instagram: [], skipped: [] };
   let index = 0;
-  for (const file of files) {
+  for (const item of items) {
     index += 1;
-    const label = file.webkitRelativePath || file.name;
-    onProgress(`Reading ${label} (${index}/${files.length})…`);
+    const file = item instanceof Blob ? item : item.file;
+    const label = (item instanceof Blob ? null : item.path) || file.webkitRelativePath || file.name;
+    onProgress(`Reading ${label.split("/").pop()} (${index}/${items.length})…`);
     if (/\.zip$/i.test(file.name)) {
       const entries = (await listZip(file)).filter((entry) => isInteresting(entry.name) && entry.size < MAX_TEXT_BYTES);
       let done = 0;

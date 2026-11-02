@@ -33,8 +33,15 @@ browser**: nothing is uploaded, and there's no account or server.
 * **Install it.** On a phone, tap *Share → Add to Home Screen* (iPhone) or *Install app* (Android). On a
   computer, use the install icon in Edge or Chrome's address bar. Once installed it works offline, and
   on Windows you can right-click a chat export and choose *Open with → nudge*.
-* **Open it before you open a feed.** Your last results are saved on your device. Tap **✓ Replied**
-  as you catch up, and when that friend messages again in your next export they come back.
+* **No dragging after the first time:**
+  * **Computer (Edge / Chrome):** click **📁 Connect Downloads folder** once. Each time you open nudge it
+    picks up the newest Instagram, Messenger, WhatsApp and Telegram exports from that folder by itself.
+    In the installed app, choose *Allow on every visit* and it's fully automatic.
+  * **Android:** install nudge, then in WhatsApp tap *Export chat → nudge*. It lands in the app directly.
+  * **Everywhere:** nudge remembers every chat you've added and merges new ones in, so you only ever add
+    what's new. It keeps who-sent-what-when and links only, never message text, and only on your device.
+* **Open it before you open a feed.** Tap **✓ Replied** as you catch up. When that friend messages
+  again in a later export, they come back.
 * **Different name per app?** Pick "You on WhatsApp / Instagram / …" if it guessed wrong.
 
 The app lives in `docs/` (plain HTML + JavaScript, no build step). The command-line tool below adds

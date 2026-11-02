@@ -46,6 +46,14 @@
         <button id="demo-button" class="link-button">try it with demo data</button>
       </div>
 
+      <div id="auto-card" class="auto-card" hidden>
+        <div>
+          <strong>No more dragging</strong>
+          <p id="auto-card-text" class="muted"></p>
+        </div>
+        <button id="connect-folder" class="button primary" hidden>📁 Connect Downloads folder</button>
+      </div>
+
       <ul class="badges">
         <li>🔒 Nothing leaves your device</li>
         <li>✈️ Works offline</li>
@@ -65,7 +73,8 @@
         <summary>WhatsApp</summary>
         <ol>
           <li>Open a chat → tap the name (iPhone) or ⋮ (Android) → <b>Export chat</b> → <b>Without media</b>.</li>
-          <li>Save it to Files / Drive, then drop the .zip or .txt here. Do it for each friend you care about.</li>
+          <li><b>Android with nudge installed:</b> pick <b>nudge</b> in the share sheet. Done, nothing to save.</li>
+          <li>Otherwise save it to Downloads (nudge finds it if the folder is connected) or drop the .zip / .txt here.</li>
         </ol>
       </details>
       <details class="howto">
@@ -97,6 +106,13 @@
     <!-- Results -->
     <section id="results-view" class="view" hidden>
       <div id="demo-banner" class="banner" hidden>You're looking at demo data. <button class="link-button" data-action="import">Use your own chats →</button></div>
+      <div id="source-bar" class="source-bar" hidden>
+        <span id="source-text"></span>
+        <span class="source-actions">
+          <button id="refresh-folder" class="small" hidden>Check for new chats</button>
+          <button id="connect-folder-2" class="small" hidden>📁 Auto-refresh from Downloads</button>
+        </span>
+      </div>
 
       <div class="hero">
         <p id="hero-kicker" class="kicker"></p>

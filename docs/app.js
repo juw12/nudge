@@ -1,12 +1,16 @@
-// nudge web app: UI, local persistence, install + offline support.
+// nudge web app: UI, on-device persistence, auto-refresh from a folder, share target, install + offline.
 import { analyze, headline, isWaiting, lastActivity, responseRate, senderNamesBySource } from "./engine.js";
+import { canRead, connectFolder, folderSupported, forgetFolder, savedFolder, scanFolder } from "./folder.js";
 import { loadFiles } from "./loader.js";
+import { compactThread, idbClear, idbDelete, idbGet, idbSet, mergeThreads, reviveThread } from "./store.js";
 
 const STORE_KEY = "nudge:v1";
 const WINDOWS = [7, 30, 90];
 const DAY = 24 * 3600 * 1000;
 const STALE_DAYS = 7;
 const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
+const IS_ANDROID = /android/i.test(navigator.userAgent);
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 const APP_LINKS = {
   instagram: { label: "Instagram", url: "https://www.instagram.com/direct/inbox/" },
@@ -17,13 +21,17 @@ const APP_LINKS = {
 };
 
 const state = {
-  threads: null, // only in memory, never stored
+  threads: null, // parsed chats; kept on this device in IndexedDB (no message text)
   me: null, // { source: "your name on that app" } once the user picks; null = auto-detect
   days: 30,
   summaries: null,
   savedAt: null,
   done: {},
   isDemo: false,
+  folderName: null,
+  folderCheckedAt: null,
+  folderSignature: null,
+  folderNeedsClick: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -40,6 +48,9 @@ function save() {
     me: state.me,
     summaries: state.summaries,
     done: state.done,
+    folderName: state.folderName,
+    folderCheckedAt: state.folderCheckedAt,
+    folderSignature: state.folderSignature,
   };
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(payload));
@@ -57,6 +68,30 @@ function restore() {
     }
   } catch {
     localStorage.removeItem(STORE_KEY);
+  }
+  return false;
+}
+
+async function saveThreads() {
+  if (state.isDemo || !state.threads) {
+    return;
+  }
+  try {
+    await idbSet("threads", state.threads.map(compactThread));
+  } catch (error) {
+    console.warn("Could not store chats on this device", error);
+  }
+}
+
+async function restoreThreads() {
+  try {
+    const stored = await idbGet("threads");
+    if (Array.isArray(stored) && stored.length) {
+      state.threads = stored.map(reviveThread);
+      return true;
+    }
+  } catch (error) {
+    console.warn("Could not read stored chats", error);
   }
   return false;
 }
@@ -125,32 +160,150 @@ function runAnalysis() {
   save();
 }
 
-async function importFiles(fileList) {
-  const files = [...fileList];
-  if (!files.length) {
-    return;
+// New chats are merged with what's already on this device, so sharing one WhatsApp chat
+// today doesn't throw away last week's Instagram export.
+async function importFiles(fileList, { quiet = false } = {}) {
+  const items = [...fileList];
+  if (!items.length) {
+    return 0;
   }
-  show("busy-view");
+  if (!quiet) {
+    show("busy-view");
+  }
   try {
-    const { threads, skipped } = await loadFiles(files, (text) => {
+    const { threads, skipped } = await loadFiles(items, (text) => {
       $("busy-text").textContent = text;
     });
     if (!threads.length) {
       show(state.summaries ? "results-view" : "welcome-view");
-      toast(skipped.length ? "Couldn't find any chats in those files" : "No chats found");
-      return;
+      if (!quiet) {
+        toast(skipped.length ? "Couldn't find any chats in those files" : "No chats found");
+      }
+      return 0;
     }
-    state.threads = threads;
+    const base = state.isDemo || !state.threads ? [] : state.threads;
     state.isDemo = false;
-    state.me = null;
+    state.threads = mergeThreads(base, threads);
+    await saveThreads();
     runAnalysis();
     renderResults();
     show("results-view");
-    toast(`Read ${threads.length} chat${threads.length === 1 ? "" : "s"}`);
+    toast(`Updated with ${threads.length} chat${threads.length === 1 ? "" : "s"}`);
+    return threads.length;
   } catch (error) {
     console.error(error);
-    show("welcome-view");
+    show(state.summaries ? "results-view" : "welcome-view");
     toast(`Something went wrong: ${error.message}`);
+    return 0;
+  }
+}
+
+// ------------------------------------------------------------------ connected folder
+
+async function refreshFromFolder({ ask = false, quiet = false } = {}) {
+  const handle = await savedFolder();
+  if (!handle) {
+    return;
+  }
+  if (!(await canRead(handle, ask))) {
+    state.folderNeedsClick = true;
+    renderSourceBar();
+    return;
+  }
+  state.folderNeedsClick = false;
+  state.folderName = handle.name;
+  const { items, signature } = await scanFolder(handle, (text) => {
+    $("busy-text").textContent = text;
+  });
+  state.folderCheckedAt = Date.now();
+  if (signature && signature === state.folderSignature && state.threads) {
+    save();
+    renderSourceBar();
+    if (!quiet) {
+      toast("No new exports since last time");
+    }
+    return;
+  }
+  state.folderSignature = signature;
+  if (!items.length) {
+    save();
+    renderSourceBar();
+    toast(`No chat exports in “${handle.name}” yet`);
+    return;
+  }
+  await importFiles(items, { quiet });
+  save();
+  renderSourceBar();
+}
+
+async function onConnectFolder() {
+  try {
+    const handle = await connectFolder();
+    state.folderName = handle.name;
+    state.folderSignature = null;
+    show("busy-view");
+    await refreshFromFolder({ ask: true });
+    if (!state.summaries) {
+      show("welcome-view");
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      toast(`Couldn't connect the folder: ${error.message}`);
+    }
+  }
+}
+
+function renderSourceBar() {
+  const bar = $("source-bar");
+  const refresh = $("refresh-folder");
+  const connect = $("connect-folder-2");
+  if (state.isDemo) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  if (state.folderName) {
+    refresh.hidden = false;
+    connect.hidden = true;
+    if (state.folderNeedsClick) {
+      $("source-text").textContent = `📁 ${state.folderName} · tap to check for new chats`;
+      refresh.textContent = "Check now";
+      refresh.classList.add("primary");
+    } else {
+      const checked = state.folderCheckedAt ? daysAgoOrTime(state.folderCheckedAt) : "not yet";
+      $("source-text").textContent = `📁 Auto-refresh from “${state.folderName}” · checked ${checked}`;
+      refresh.textContent = "Check for new chats";
+      refresh.classList.remove("primary");
+    }
+  } else {
+    refresh.hidden = true;
+    connect.hidden = !folderSupported;
+    $("source-text").textContent = IS_ANDROID ? "📱 Tip: in WhatsApp, Export chat → nudge" : "";
+  }
+}
+
+function daysAgoOrTime(ts) {
+  const minutes = Math.round((Date.now() - ts) / 60000);
+  if (minutes < 1) {
+    return "just now";
+  }
+  if (minutes < 60) {
+    return `${minutes} min ago`;
+  }
+  return daysAgo(ts).replace("today", new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+}
+
+// ------------------------------------------------------------------ shared files (Android share target)
+
+async function importShared() {
+  const files = (await idbGet("sharedInbox")) || [];
+  await idbDelete("sharedInbox");
+  history.replaceState(null, "", location.pathname);
+  if (files.length) {
+    await importFiles(files);
+  } else if (state.summaries) {
+    renderResults();
+    show("results-view");
   }
 }
 
@@ -169,6 +322,26 @@ async function loadDemo() {
   show("results-view");
 }
 
+function renderWelcomeExtras() {
+  const card = $("auto-card");
+  const text = $("auto-card-text");
+  const button = $("connect-folder");
+  if (folderSupported) {
+    text.textContent = "Connect your Downloads folder once. Each time you open nudge, it picks up new Instagram, WhatsApp and Telegram exports by itself.";
+    button.hidden = false;
+  } else if (IS_ANDROID) {
+    text.textContent = "Install nudge (browser menu → Install app). Then in WhatsApp: Export chat → nudge. It lands here directly.";
+    button.hidden = true;
+  } else if (IS_IOS) {
+    text.textContent = "Save exports to Files and tap Choose files. nudge remembers every chat, so you only add what's new.";
+    button.hidden = true;
+  } else {
+    text.textContent = "nudge remembers every chat you add, so next time you only add what's new.";
+    button.hidden = true;
+  }
+  card.hidden = false;
+}
+
 // ------------------------------------------------------------------ rendering
 
 function renderResults() {
@@ -179,6 +352,7 @@ function renderResults() {
   const caughtUp = friends.filter((f) => !waiting.includes(f) && !hello.includes(f));
 
   $("demo-banner").hidden = !state.isDemo;
+  renderSourceBar();
 
   const shares = friends.reduce((sum, f) => sum + f.sharesReceived, 0);
   const answered = friends.reduce((sum, f) => sum + f.sharesReplied + f.sharesReactedOnly, 0);
@@ -335,12 +509,39 @@ function wireEvents() {
 
   $("demo-button").addEventListener("click", loadDemo);
 
-  $("forget-button").addEventListener("click", () => {
+  $("connect-folder").addEventListener("click", onConnectFolder);
+  $("connect-folder-2").addEventListener("click", onConnectFolder);
+  $("refresh-folder").addEventListener("click", async () => {
+    const button = $("refresh-folder");
+    button.disabled = true;
+    button.textContent = "Checking…";
+    try {
+      await refreshFromFolder({ ask: true, quiet: false });
+    } finally {
+      button.disabled = false;
+      renderSourceBar();
+    }
+  });
+
+  $("forget-button").addEventListener("click", async () => {
     if (!confirm("Delete nudge's saved results from this device?")) {
       return;
     }
     localStorage.removeItem(STORE_KEY);
-    Object.assign(state, { threads: null, me: null, summaries: null, savedAt: null, done: {}, isDemo: false });
+    await forgetFolder().catch(() => {});
+    await idbClear().catch(() => {});
+    Object.assign(state, {
+      threads: null,
+      me: null,
+      summaries: null,
+      savedAt: null,
+      done: {},
+      isDemo: false,
+      folderName: null,
+      folderCheckedAt: null,
+      folderSignature: null,
+      folderNeedsClick: false,
+    });
     show("welcome-view");
     toast("Forgotten. Nothing left on this device.");
   });
@@ -352,6 +553,7 @@ function wireEvents() {
     }
     if (target.dataset.action === "import") {
       state.isDemo = false;
+      renderWelcomeExtras();
       show("welcome-view");
       return;
     }
@@ -418,9 +620,8 @@ function setupInstall() {
     deferredPrompt = null;
     button.hidden = true;
   });
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  $("ios-hint").hidden = !(isIOS && !standalone);
+  $("ios-hint").hidden = !(IS_IOS && !standalone);
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});
@@ -440,18 +641,43 @@ function setupInstall() {
 
 // ------------------------------------------------------------------ start
 
-wireEvents();
-setupInstall();
+async function start() {
+  wireEvents();
+  setupInstall();
+  renderWelcomeExtras();
 
-const params = new URLSearchParams(location.search);
-if (params.has("demo")) {
-  loadDemo();
-} else if (restore()) {
-  renderResults();
-  show("results-view");
-} else {
-  show("welcome-view");
+  const params = new URLSearchParams(location.search);
+  if (params.has("demo")) {
+    await loadDemo();
+    return;
+  }
+
+  // 1. Show the last results instantly, then load the stored chats behind them.
+  const hadResults = restore();
+  if (hadResults) {
+    renderResults();
+    show("results-view");
+  } else {
+    show("welcome-view");
+  }
+  if (await restoreThreads()) {
+    runAnalysis();
+    renderResults();
+    show("results-view");
+  }
+
+  // 2. Files shared from another app (Android share sheet).
+  if (params.has("shared")) {
+    await importShared();
+  }
+
+  // 3. Connected folder: pick up new exports on every open (silently if allowed).
+  if (folderSupported && (await savedFolder())) {
+    await refreshFromFolder({ ask: false, quiet: true });
+  }
 }
 
+start();
+
 // Exposed for automated tests only.
-window.__nudge = { state, importFiles, loadDemo };
+window.__nudge = { state, importFiles, loadDemo, refreshFromFolder };
