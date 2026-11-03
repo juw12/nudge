@@ -1,4 +1,56 @@
-# nudge 💌
+<!-- HERO:START -->
+<p align="center">
+  <a href="https://juw12.github.io/nudge/"><img src="docs/media/banner.jpg" alt="Nudge: See which friends you've been leaving on read." width="100%"></a>
+</p>
+
+<p align="center">
+  <b>See which friends you've been leaving on read.</b><br>
+  Nudge reads your own chat exports and hands you a ready-to-send opener to reconnect.
+</p>
+
+<p align="center">
+  <a href="https://juw12.github.io/nudge/"><b>Try it live</b></a> ·
+  <a href="#see-it-in-action">See it in action</a> ·
+  <a href="#highlights">Highlights</a> ·
+  <a href="https://github.com/juw12">More by juw12</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/juw12/nudge"><img src="https://img.shields.io/github/last-commit/juw12/nudge?label=updated&color=e11d48" alt="Last updated"></a>
+  <a href="https://juw12.github.io/nudge/"><img src="https://img.shields.io/badge/demo-live-2ea44f" alt="Live demo"></a>
+  <img src="https://img.shields.io/badge/Web-24292f" alt="Web">
+  <img src="https://img.shields.io/badge/Python_CLI-24292f" alt="Python CLI">
+  <img src="https://img.shields.io/badge/iOS_widget-24292f" alt="iOS widget">
+  <img src="https://img.shields.io/badge/license-MIT-e11d48" alt="MIT license">
+</p>
+
+<a id="highlights"></a>
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <b>Your exports, your machine</b><br>
+      Instagram, WhatsApp, Telegram and iMessage exports, analysed 100% locally.
+    </td>
+    <td width="33%" valign="top">
+      <b>Who's waiting on you</b><br>
+      Unanswered shares and fading friendships, ranked.
+    </td>
+    <td width="33%" valign="top">
+      <b>A nudge each week</b><br>
+      A weekly digest, an iOS widget and a ready-to-send opener.
+    </td>
+  </tr>
+</table>
+
+## See it in action
+
+<p align="center">
+  <a href="https://juw12.github.io/nudge/"><img src="docs/media/demo.png" alt="Nudge screenshot" width="820"></a><br>
+  <sub>Open the interactive demo at <a href="https://juw12.github.io/nudge/">juw12.github.io/nudge/</a></sub>
+</p>
+<!-- HERO:END -->
+
+## About
 
 **Your friends keep sending you reels. You keep scrolling past them.**
 
