@@ -6,7 +6,7 @@
   --border-strong: #d4d4d8;
   --text: #18181b;
   --text-2: #3f3f46;
-  --muted: #71717a;
+  --muted: #66666e;
   --subtle: #a1a1aa;
   --accent: #4f46e5;
   --accent-hover: #4338ca;
@@ -980,4 +980,11 @@ select {
   .page-head {
     align-items: flex-start;
   }
+}
+
+/* hone a11y: 44px phone tap targets for brand + text-link buttons */
+@media (max-width: 600px) {
+  .brand { min-height: 44px; }
+  .link, .footer-links a, .footer a { display: inline-flex; align-items: center; min-height: 44px; }
+  details li a { display: inline-block; padding: 13px 0; }
 }
