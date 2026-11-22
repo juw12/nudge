@@ -50,6 +50,15 @@
 </p>
 <!-- HERO:END -->
 
+## Get it on your device
+
+- **Windows:** [`NudgeApp-Windows-Setup.exe`](https://github.com/juw12/nudge/releases/download/desktop/NudgeApp-Windows-Setup.exe) (no admin needed; if Windows says it protected your PC, choose *More info → Run anyway*), or without installing [`NudgeApp-Windows-Portable.zip`](https://github.com/juw12/nudge/releases/download/desktop/NudgeApp-Windows-Portable.zip).
+- **Mac:** [`NudgeApp-macOS-AppleSilicon.dmg`](https://github.com/juw12/nudge/releases/download/desktop/NudgeApp-macOS-AppleSilicon.dmg) (M1 and newer) or [`NudgeApp-macOS-Intel.dmg`](https://github.com/juw12/nudge/releases/download/desktop/NudgeApp-macOS-Intel.dmg). The first time, macOS blocks it because it is not notarized: **System Settings → Privacy & Security → Open Anyway**.
+- **Android:** [`NudgeApp-android.apk`](https://github.com/juw12/nudge/releases/download/android/NudgeApp-android.apk): open the file on the phone and allow your browser to install apps once.
+- **iPhone:** open https://juw12.github.io/nudge/ in Safari, tap Share, then **Add to Home Screen**.
+
+The Windows, Mac and Android apps are the web app in its own window ([`desktop/`](desktop/README.md), [`android/`](android/README.md)) and change with it. Each build is opened on GitHub's machines before it is published: on Windows and on a Mac the page loads, the app starts and can store data; on an Android emulator it installs, opens and stays up. They are not code-signed or notarised, and no real phone or PC has run them yet.
+
 ## About
 
 **Your friends keep sending you reels. You keep scrolling past them.**
